@@ -12,6 +12,7 @@ from TwitterAPI import TwitterAPI
 
 # parameters
 USER = "NinaDiPrimio"
+# USER="eperlste"
 TWEET_WINDOW_LENGTH = "200"
 
 # endpoints 
@@ -32,12 +33,22 @@ class Scraper(object):
 		self.api = TwitterAPI(client_key, client_secret, auth_token, auth_secret)
 		self.html_parser = HTMLParser()
 
-	def get_user_stats(self, user):
+	def print_user_status(self, user):
 		"""Return total user tweet count""" 
 		response = self.api.request(USER_ENDPOINT, {"screen_name": user})
 		if response.status_code != 200:
 			raise Exception("something went wrong getting user stats")
-		return response.json()[0]['statuses_count']
+		user_tweet_count = int(response.json()[0]['statuses_count'])
+
+		print "Found {count} tweets for user {user}.".format(count=user_tweet_count,user=user)
+		if user_tweet_count > 3200:
+			print "Downloading 3200 most recent tweets."
+		else:
+			print "Downloading now. Please wait."
+
+
+
+		return 
 
 	def tweet_cleaner(self, tweet):
 		"""Clean up tweets a little, remove urls, html, etc""" 
@@ -49,10 +60,7 @@ class Scraper(object):
 	def get_user_corpus(self, user):
 		last_tweet_id = None
 		tweet_texts = []
-		user_tweet_count = self.get_user_stats(user)
-
-		print "Found {count} tweets for user {user}. Downloading now. Please wait.".format(count=user_tweet_count,
-																						   user=user)
+		user_tweet_count = self.print_user_status(user)
 		while True:
 			context = {'screen_name': user,
 					   'max_id' : last_tweet_id,
