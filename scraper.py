@@ -3,8 +3,9 @@
 Get last 3200 tweets for a given user or users.
 
 """
+from HTMLParser import HTMLParser
 import os
-import logging
+import re
 import time
 
 from TwitterAPI import TwitterAPI
@@ -27,18 +28,21 @@ class Scraper(object):
 			auth_secret = os.environ['TWITTER_TOKEN_SECRET']
 		except KeyError: 
 			raise Exception("You need to have the TWITTER_API_KEY and TWITTER_API_SECRET set in your environment")
+		
 		self.api = TwitterAPI(client_key, client_secret, auth_token, auth_secret)
-	
-	def get_user_status_count(self, user):
-		response = self.api.request(USER_ENDPOINT, {'screen_name': user})
+		self.html_parser = HTMLParser()
 
-		if response.status_code != 200:
-			raise Exception()
+	def get_user_stats(self, user):
+		
+
+	def tweet_cleaner(self, tweet):
+		removed_html_tweet = self.html_parser.unescape(tweet)
+		cleaned_text = re.sub(r"http\S+", "", removed_html_tweet) 
+		return cleaned_text
 
 	def get_user_corpus(self, user):
 		last_tweet_id = None
 		tweet_texts = []
-		total_count = self.get_user_status_count(user)
 
 		while True:
 			context = {'screen_name': user,
@@ -57,13 +61,14 @@ class Scraper(object):
 			last_tweet_id = tweets[-1]['id']
 
 			for tweet in tweets:
-				tweet_texts.append(tweet['text'])
+				cleaned_tweet = self.tweet_cleaner(tweet['text'])
+				tweet_texts.append(cleaned_tweet)
 		
-		self.write_corpus_to_file(tweet_texts)
+		self.write_corpus_to_file(tweet_texts, user)
 
 
-	def write_corpus_to_file(self, corpus):
-		with open("%s.corpus" % USER, 'w') as f:
+	def write_corpus_to_file(self, corpus, user):
+		with open("%s.corpus" % user, 'w') as f:
 			for tweet in corpus:
 				f.write(tweet.encode('utf-8') + "\n")
 
