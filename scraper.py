@@ -93,6 +93,8 @@ class Scraper(object):
 		self.get_user_corpus(user)
 
 if __name__ == "__main__":
+	import sys
+
 	scraper = Scraper()
-	scraper._run(USER)
+	scraper._run(sys.argv[1])
 
