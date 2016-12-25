@@ -33,17 +33,26 @@ class Scraper(object):
 		self.html_parser = HTMLParser()
 
 	def get_user_stats(self, user):
-		
+		"""Return total user tweet count""" 
+		response = self.api.request(USER_ENDPOINT, {"screen_name": user})
+		if response.status_code != 200:
+			raise Exception("something went wrong getting user stats")
+		return response.json()[0]['statuses_count']
 
 	def tweet_cleaner(self, tweet):
+		"""Clean up tweets a little, remove urls, html, etc""" 
 		removed_html_tweet = self.html_parser.unescape(tweet)
 		cleaned_text = re.sub(r"http\S+", "", removed_html_tweet) 
-		return cleaned_text
+
+		return cleaned_text.encode('utf-8')
 
 	def get_user_corpus(self, user):
 		last_tweet_id = None
 		tweet_texts = []
+		user_tweet_count = self.get_user_stats(user)
 
+		print "Found {count} tweets for user {user}. Downloading now. Please wait.".format(count=user_tweet_count,
+																						   user=user)
 		while True:
 			context = {'screen_name': user,
 					   'max_id' : last_tweet_id,
@@ -70,11 +79,10 @@ class Scraper(object):
 	def write_corpus_to_file(self, corpus, user):
 		with open("%s.corpus" % user, 'w') as f:
 			for tweet in corpus:
-				f.write(tweet.encode('utf-8') + "\n")
+				f.write(tweet + "\n")
 
 	def _run(self, user):
 		self.get_user_corpus(user)
-
 
 if __name__ == "__main__":
 	scraper = Scraper()
