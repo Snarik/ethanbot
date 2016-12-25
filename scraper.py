@@ -40,15 +40,13 @@ class Scraper(object):
 			response = self.api.request(API_ENDPOINT, context)
 
 			if response.status_code != 200:
-				print "Problem curling. {status_code} code returned".format(status_code=response.status_code)
-				raise Exception
+				raise Exception("Problem curling. {status_code} code returned".format(status_code=response.status_code))
 
 			if last_tweet_id == response.json()[-1]['id']:
 				break
 
 			tweets = response.json()
 			last_tweet_id = tweets[-1]['id']
-			print last_tweet_id
 
 			for tweet in tweets:
 				tweet_texts.append(tweet['text'])
