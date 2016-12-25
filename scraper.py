@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-""" File to get all tweets of a given user
-relies on : 
- https://api.twitter.com/1.1/statuses/user_timeline.json
-end point
+""" 
+Get last 3200 tweets for a given user or users.
 
 """
 import os
@@ -11,9 +9,13 @@ import time
 
 from TwitterAPI import TwitterAPI
 
-# USER = "eperlste"
+# parameters
 USER = "NinaDiPrimio"
-API_ENDPOINT = "statuses/user_timeline"
+TWEET_WINDOW_LENGTH = "200"
+
+# endpoints 
+STATUS_ENDPOINT = "statuses/user_timeline"
+USER_ENDPOINT = "users/lookup"
 
 class Scraper(object):
 
@@ -26,18 +28,24 @@ class Scraper(object):
 		except KeyError: 
 			raise Exception("You need to have the TWITTER_API_KEY and TWITTER_API_SECRET set in your environment")
 		self.api = TwitterAPI(client_key, client_secret, auth_token, auth_secret)
+	
+	def get_user_status_count(self, user):
+		response = self.api.request(USER_ENDPOINT, {'screen_name': user})
+
+		if response.status_code != 200:
+			raise Exception()
 
 	def get_user_corpus(self, user):
 		last_tweet_id = None
 		tweet_texts = []
-		window_length = "200"
+		total_count = self.get_user_status_count(user)
 
 		while True:
 			context = {'screen_name': user,
 					   'max_id' : last_tweet_id,
-					   'count': window_length}
+					   'count': TWEET_WINDOW_LENGTH}
 
-			response = self.api.request(API_ENDPOINT, context)
+			response = self.api.request(STATUS_ENDPOINT, context)
 
 			if response.status_code != 200:
 				raise Exception("Problem curling. {status_code} code returned".format(status_code=response.status_code))
@@ -50,22 +58,20 @@ class Scraper(object):
 
 			for tweet in tweets:
 				tweet_texts.append(tweet['text'])
+		
+		self.write_corpus_to_file(tweet_texts)
 
-			time.sleep(0.1)
-
-		return tweet_texts
 
 	def write_corpus_to_file(self, corpus):
 		with open("%s.corpus" % USER, 'w') as f:
 			for tweet in corpus:
 				f.write(tweet.encode('utf-8') + "\n")
 
-	def _run(self):
-		tweets = self.get_user_corpus(USER)
-		write_corpus_to_file(tweets)
+	def _run(self, user):
+		self.get_user_corpus(user)
 
 
 if __name__ == "__main__":
 	scraper = Scraper()
+	scraper._run(USER)
 
-	nina = scraper.get_user_corpus()
