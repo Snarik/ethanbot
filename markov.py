@@ -25,12 +25,21 @@ class TweetModel(object):
 			self.mashup = False
 		self.corpora = self._get_all_corpora(self.users)
 
-	def build_model(self, text):
-		for i in range(1, MAX_PROBABLE_KMER):
-			model = markovify.NewlineText(text, state_size=i)
-			if self.test_model(model):
-				break
-		return model
+	def build_model(self, text, kmer=None):
+		if not kmer: 
+			for i in range(1, MAX_PROBABLE_KMER):
+				model = markovify.NewlineText(text, state_size=i)
+				if self.test_model(model):
+					print "StateSize"
+					print i
+					break
+			return model
+
+		else:
+			# we have to enforce that models are of the same state size 
+			# to allow them to merge. 
+			model = markovify.NewlineText(text, state_size=kmer)
+			return model
 
 	def test_model(self, model):
 		"""Test if most of the model's outputs are None.
@@ -46,6 +55,7 @@ class TweetModel(object):
 		for trial in trials:
 			if not trial:
 				none_count += 1
+
 		if STATE_SIZE_THRESHOLD < none_count / len(trials) < 1.0:
 			return True
 
@@ -59,20 +69,22 @@ class TweetModel(object):
 
 		return corpora
 
-	def run(self):
-
-		if not self.mashup:
-			model = self.build_model(self.corpora[self.users[0]])
-		else:
-			models = []
-			for user in self.users:
-				models.append(self.build_model(self.corpora[user]))
-			combo = makovify.combine(models)
-		print "Examples:"
+	def run_examples(self, model):
+		print "Examples"
 		print "===================="
 		for i in range(5):
 			print "%s) %s" % (i,  model.make_short_sentence(140))
 
+	def run(self):
+		if not self.mashup:
+			model = self.build_model(self.corpora[self.users[0]])
+			self.run_examples(model)
+		else:
+			models = []
+			for user in self.users:
+				models.append(self.build_model(self.corpora[user], kmer=3))
+			combo = markovify.combine(models)
+			self.run_examples(combo)
 
 if __name__ == "__main__":
 
