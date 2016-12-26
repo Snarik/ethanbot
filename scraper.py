@@ -11,8 +11,6 @@ import time
 from TwitterAPI import TwitterAPI
 
 # parameters
-USER = "NinaDiPrimio"
-# USER="eperlste"
 TWEET_WINDOW_LENGTH = "200"
 
 # endpoints 
@@ -21,7 +19,7 @@ USER_ENDPOINT = "users/lookup"
 
 class Scraper(object):
 
-	def __init__(self):
+	def __init__(self, in_memory=False):
 		try:
 			client_key = os.environ['TWITTER_API_KEY']
 			client_secret = os.environ['TWITTER_API_SECRET']
@@ -32,12 +30,13 @@ class Scraper(object):
 		
 		self.api = TwitterAPI(client_key, client_secret, auth_token, auth_secret)
 		self.html_parser = HTMLParser()
+		self.in_memory = in_memory
 
 	def print_user_status(self, user):
 		"""Return total user tweet count""" 
 		response = self.api.request(USER_ENDPOINT, {"screen_name": user})
 		if response.status_code != 200:
-			raise Exception("something went wrong getting user stats")
+			raise Exception("something went wrong getting user stats. %s returned" % response.status_code)
 		user_tweet_count = int(response.json()[0]['statuses_count'])
 
 		print "Found {count} tweets for user {user}.".format(count=user_tweet_count,user=user)
@@ -46,15 +45,14 @@ class Scraper(object):
 		else:
 			print "Downloading now. Please wait."
 
-
-
-		return 
-
 	def tweet_cleaner(self, tweet):
 		"""Clean up tweets a little, remove urls, html, etc""" 
-		removed_html_tweet = self.html_parser.unescape(tweet)
-		cleaned_text = re.sub(r"http\S+", "", removed_html_tweet) 
-
+		removed_html_text = self.html_parser.unescape(tweet)
+		remove_url_text = re.sub(r"http\S+", "", removed_html_text) 
+		remove_user_mentions = " ".join(filter(lambda x: x[0] != "@", remove_url_text.split()))
+		remove_RT = re.sub(r"RT", "", remove_user_mentions)
+		
+		cleaned_text = remove_RT
 		return cleaned_text.encode('utf-8')
 
 	def get_user_corpus(self, user):
@@ -80,7 +78,8 @@ class Scraper(object):
 			for tweet in tweets:
 				cleaned_tweet = self.tweet_cleaner(tweet['text'])
 				tweet_texts.append(cleaned_tweet)
-		
+		if self.in_memory:
+			return tweet_texts
 		self.write_corpus_to_file(tweet_texts, user)
 
 
@@ -90,7 +89,7 @@ class Scraper(object):
 				f.write(tweet + "\n")
 
 	def _run(self, user):
-		self.get_user_corpus(user)
+		self.get_user_corpus(user, self.in_memory)
 
 if __name__ == "__main__":
 	import sys
