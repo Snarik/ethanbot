@@ -76,6 +76,8 @@ class Scraper(object):
 			last_tweet_id = tweets[-1]['id']
 
 			for tweet in tweets:
+				if tweet['truncated']: 
+					continue
 				cleaned_tweet = self.tweet_cleaner(tweet['text'])
 				tweet_texts.append(cleaned_tweet)
 		if self.in_memory:
@@ -89,7 +91,7 @@ class Scraper(object):
 				f.write(tweet + "\n")
 
 	def _run(self, user):
-		self.get_user_corpus(user, self.in_memory)
+		self.get_user_corpus(user)
 
 if __name__ == "__main__":
 	import sys
