@@ -19,7 +19,7 @@ class TweetModel(object):
 	def __init__(self, users):
 		self.users = users
 
-		if len(self.users)>1:
+		if len(self.users) > 1:
 			self.mashup = True
 		else:
 			self.mashup = False
